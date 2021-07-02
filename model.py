@@ -5,10 +5,12 @@ import torch
 import torch.nn as nn
 from transformers import AutoModel, PreTrainedModel
 from transformers import BertModel, BertPreTrainedModel, BertForMaskedLM
+from transformers import AdapterConfig
 from transformers.models.bert.modeling_bert import BertOnlyMLMHead, BertLayer
 from AdaptersComponents.BertLayerAdapter import BertLayer_w_Adapters
 from AdaptersComponents.BertLayerPlainAdapter import BertLayer_w_PlainAdapters
 from general_utils import random_mask_tokens
+from transformers.adapters.composition import Fuse
 from vatt import vatt
 
 # from transformers.models.bert.modeling_bert import BertModel as TBertModel
@@ -40,6 +42,8 @@ class ArabicDialectBERT(BertPreTrainedModel):
         self.args = args
         self.num_labels = args["num_labels"]
         self.bert = BertModel(config=config)  # TO-DO: Add adapters function that changes encoder here # Load pretrained bert
+        config = AdapterConfig.load("pfeiffer", non_linearity="relu", reduction_factor=2)
+        self.bert.load_adapter("ar/wiki@ukp", config=config)
         self.masking_perc = args["masking_percentage"]
         self.mask_id = args["mask_id"]
         self.device_name = args["device"]
