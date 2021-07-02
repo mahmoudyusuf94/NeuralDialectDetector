@@ -42,8 +42,8 @@ class ArabicDialectBERT(BertPreTrainedModel):
         self.args = args
         self.num_labels = args["num_labels"]
         self.bert = BertModel(config=config)  # TO-DO: Add adapters function that changes encoder here # Load pretrained bert
-        config = AdapterConfig.load("pfeiffer", non_linearity="relu", reduction_factor=2)
-        self.bert.load_adapter("ar/wiki@ukp", config=config)
+        self.adapter_conf = AdapterConfig.load("pfeiffer", non_linearity="relu", reduction_factor=2)
+        self.adapter_name = self.bert.load_adapter("ar/wiki@ukp", config=self.adapter_conf, model_name='bert-base-multilingual-cased')
         self.masking_perc = args["masking_percentage"]
         self.mask_id = args["mask_id"]
         self.device_name = args["device"]
@@ -82,6 +82,7 @@ class ArabicDialectBERT(BertPreTrainedModel):
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,
             output_hidden_states=True,
+            adapter_names=[self.adapter_name]
         )  # sequence_output, pooled_output, (hidden_states), (attentions)
         # sequence_output = outputs[0]  # Not needed for now
         pooled_output = outputs[1]  # [CLS]
