@@ -41,7 +41,7 @@ class InvSqrtLR(LambdaLR):
             it = 1 + (iteration - self.num_warmup) // self.mini_epoch_sz
             fac = self.max_factor / max(1.0, np.sqrt(it / self.temp))
             fac = max(fac, self.min_factor)
-        neptune.log_metric('InvSqrtLR_factor', x=global_step, y=fac)
+        # neptune.log_metric('InvSqrtLR_factor', x=global_step, y=fac)
         return fac
 
 class Trainer():
