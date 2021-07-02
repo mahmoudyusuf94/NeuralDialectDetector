@@ -46,9 +46,18 @@ class ArabicDialectBERT(BertPreTrainedModel):
         # self.adapter_conf = AdapterConfig.load("pfeiffer", non_linearity="relu", reduction_factor=2)
         # self.adapter_name = self.bert.load_adapter("ar/wiki@ukp", config=self.adapter_conf, model_name='bert-base-multilingual-cased')
 
-        self.adapter_conf = AdapterConfig.load("pfeiffer")
-        self.adapter_name = self.bert.load_adapter("dialect/arabic@mapmeld", config=self.adapter_conf, model_name='aubmindlab/bert-base-arabert')
-        self.bert.set_active_adapters(self.adapter_name)
+        adapter1_conf = AdapterConfig.load("pfeiffer")
+        adapter1_name = self.bert.load_adapter("dialect/arabic@mapmeld", config=adapter1_conf, model_name='aubmindlab/bert-base-arabert')
+
+        adapter2_conf = AdapterConfig.load("pfeiffer", non_linearity="relu", reduction_factor=2)
+        adapter2_name = self.bert.load_adapter("ar/wiki@ukp", config=adapter2_conf, model_name='bert-base-multilingual-cased')
+
+        adapter_setup = Fuse(adapter1_name, adapter2_name)
+        self.bert.add_fusion(adapter_setup)
+        self.bert.set_active_adapters(adapter_setup)
+        self.bert.train_fusion(adapter_setup)
+
+        # self.bert.set_active_adapters(self.adapter_name)
 
         self.masking_perc = args["masking_percentage"]
         self.mask_id = args["mask_id"]
