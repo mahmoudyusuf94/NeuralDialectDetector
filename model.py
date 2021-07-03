@@ -58,7 +58,7 @@ class ArabicDialectBERT(BertPreTrainedModel):
         # self.bert.train_fusion(adapter_setup)
 
         # self.bert.set_active_adapters(self.adapter_name)
-
+        
         self.masking_perc = args["masking_percentage"]
         self.mask_id = args["mask_id"]
         self.device_name = args["device"]

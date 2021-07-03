@@ -269,6 +269,10 @@ class Trainer():
                                                             config=model_config,
                                                             args=self.configs)
 
+        adapter_setup = Fuse('ar', 'dialect-arabic')
+        model.bert.add_fusion(adapter_setup)
+        model.bert.set_active_adapters(adapter_setup)
+
         model.to(self.configs["device"])
 
         final_dev_f1, final_dev_accuracy, final_dev_loss, y_true_dev, y_pred_dev, sentence_id_dev, logits_list_dev = evaluate_predictions(model, dev_loader, self.configs["model_class"], device=self.configs["device"], return_pred_lists=True, isTest=isTest_flag_for_dev_train)
