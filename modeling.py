@@ -1,5 +1,7 @@
 from sklearn.utils.validation import check_is_fitted
 from transformers import AutoTokenizer, AutoModel, AutoConfig, AdamW, get_linear_schedule_with_warmup
+from transformers import AdapterConfig
+from transformers.adapters.composition import Fuse
 from dataset_utils import parse_and_generate_loaders
 from general_utils import read_yaml_file, save_model, evaluate_predictions, update_dict_of_agg, save_json, dump_predictions
 import logging
@@ -90,6 +92,17 @@ class Trainer():
         model = getattr(model_classes, self.configs["model_class"]).from_pretrained(self.model_name_path,
                                                             config=model_config,
                                                             args=self.configs)
+        adapter1_conf = AdapterConfig.load("pfeiffer")
+        adapter1_name = model.bert.load_adapter("dialect/arabic@mapmeld", config=adapter1_conf, model_name='aubmindlab/bert-base-arabert')
+
+        adapter2_conf = AdapterConfig.load("pfeiffer", non_linearity="relu", reduction_factor=2)
+        adapter2_name = model.bert.load_adapter("ar/wiki@ukp", config=adapter2_conf, model_name='bert-base-multilingual-cased')
+
+        adapter_setup = Fuse(adapter1_name, adapter2_name)
+        model.bert.add_fusion(adapter_setup)
+        model.bert.set_active_adapters(adapter_setup)
+        model.bert.train_fusion(adapter_setup)
+
         model.to(self.configs["device"])
         total_steps = len(train_loader) * self.configs["num_epochs"]
 
@@ -259,17 +272,17 @@ class Trainer():
         model.to(self.configs["device"])
 
         final_dev_f1, final_dev_accuracy, final_dev_loss, y_true_dev, y_pred_dev, sentence_id_dev, logits_list_dev = evaluate_predictions(model, dev_loader, self.configs["model_class"], device=self.configs["device"], return_pred_lists=True, isTest=isTest_flag_for_dev_train)
-        # dump_predictions(sentence_id_dev, logits_list_dev, y_pred_dev, y_true_dev, os.path.join(model_path, "predictions_dev.tsv"))
+        dump_predictions(sentence_id_dev, logits_list_dev, y_pred_dev, y_true_dev, os.path.join(model_path, "predictions_dev.tsv"))
         
         final_test_f1, final_test_accuracy, final_test_loss, y_true_test, y_pred_test, sentence_id_test, logits_list_test = evaluate_predictions(model, test_loader, self.configs["model_class"], device=self.configs["device"], return_pred_lists=True, isTest=True)
-        # dump_predictions(sentence_id_test, logits_list_test, y_pred_test, y_true_test, os.path.join(model_path, "predictions_test.tsv"))
+        dump_predictions(sentence_id_test, logits_list_test, y_pred_test, y_true_test, os.path.join(model_path, "predictions_test.tsv"))
 
         dict_of_results["DEV"] = {"F1": final_dev_f1, "Accuracy": final_dev_accuracy, "Loss": final_dev_loss} 
         dict_of_results["TEST"] = {"F1": final_test_f1, "Accuracy": final_test_accuracy, "Loss": final_test_loss}
 
         if evaluate_on_train:
             final_train_f1, final_train_accuracy, final_train_loss, y_true_train, y_pred_train, sentence_id_train, logits_list_train = evaluate_predictions(model, train_loader, self.configs["model_class"], device=self.configs["device"], return_pred_lists=True, isTest=isTest_flag_for_dev_train)
-            # dump_predictions(sentence_id_train, logits_list_train, y_pred_train, y_true_train, os.path.join(model_path, "predictions_train.tsv"))
+            dump_predictions(sentence_id_train, logits_list_train, y_pred_train, y_true_train, os.path.join(model_path, "predictions_train.tsv"))
 
             dict_of_results["TRAIN"] = {"F1": final_train_f1, "Accuracy": final_train_accuracy, "Loss": final_train_loss}
 
