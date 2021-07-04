@@ -93,15 +93,17 @@ class Trainer():
                                                             config=model_config,
                                                             args=self.configs)
         adapter1_conf = AdapterConfig.load("pfeiffer")
-        adapter1_name = model.bert.load_adapter("dialect/arabic@mapmeld", config=adapter1_conf, model_name='aubmindlab/bert-base-arabert')
+        adapter1_name = model.bert.load_adapter("dialect/arabic@mapmeld", config=adapter1_conf, model_name='aubmindlab/bert-base-arabert', with_head=False)
 
         adapter2_conf = AdapterConfig.load("pfeiffer", non_linearity="relu", reduction_factor=2)
-        adapter2_name = model.bert.load_adapter("ar/wiki@ukp", config=adapter2_conf, model_name='bert-base-multilingual-cased')
+        adapter2_name = model.bert.load_adapter("ar/wiki@ukp", config=adapter2_conf, model_name='bert-base-multilingual-cased', with_head=False)
 
         adapter_setup = Fuse(adapter1_name, adapter2_name)
         model.bert.add_fusion(adapter_setup)
         model.bert.set_active_adapters(adapter_setup)
         model.bert.train_fusion(adapter_setup)
+
+        model.bert.save_all_adapters("./saved-adapters-trial")
 
         model.to(self.configs["device"])
         total_steps = len(train_loader) * self.configs["num_epochs"]
@@ -215,10 +217,12 @@ class Trainer():
             
         isTest_flag_for_dev_train = not (no_labels == self.configs["num_labels"])
 
+        model.bert.save_all_adapters("./saved-adapters")
+        model.bert.save_adapter_fusion("./saved-fusion", "dialect-arabic,ar")
+
         if self.configs["num_epochs"] > 0:
             final_dev_f1, final_dev_accuracy, final_dev_loss = evaluate_predictions(model, dev_loader, self.configs["model_class"], device=self.configs["device"], isTest=isTest_flag_for_dev_train)
             final_test_f1, final_test_accuracy, final_test_loss = evaluate_predictions(model, test_loader, self.configs["model_class"], device=self.configs["device"], isTest=True)
-
    
         # Final Model Saving
         if self.configs["save_final_model"]:
@@ -269,9 +273,23 @@ class Trainer():
                                                             config=model_config,
                                                             args=self.configs)
 
-        adapter_setup = Fuse('ar', 'dialect-arabic')
-        model.bert.add_fusion(adapter_setup)
+        # adapter1_conf = AdapterConfig.load("pfeiffer")
+        # adapter1_name = model.bert.load_adapter("dialect/arabic@mapmeld", config=adapter1_conf, model_name='aubmindlab/bert-base-arabert')
+
+        # adapter2_conf = AdapterConfig.load("pfeiffer", non_linearity="relu", reduction_factor=2)
+        # adapter2_name = model.bert.load_adapter("ar/wiki@ukp", config=adapter2_conf, model_name='bert-base-multilingual-cased')
+
+        # model.bert.add_fusion(adapter_setup)
+        # model.bert.set_active_adapters(adapter_setup)
+        adapter_setup = Fuse("dialect-arabic", "ar")
+        model.bert.load_adapter("./saved-adapters/dialect-arabic", with_head=False)
+        model.bert.load_adapter("./saved-adapters/ar", with_head=False)
+        model.bert.load_adapter_fusion("./saved-fusion", "dialect-arabic,ar")
         model.bert.set_active_adapters(adapter_setup)
+
+        # adapter_setup = Fuse('ar', 'dialect-arabic')
+        # model.bert.add_fusion(adapter_setup)
+        # model.bert.set_active_adapters(adapter_setup)
 
         model.to(self.configs["device"])
 
