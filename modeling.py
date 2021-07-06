@@ -93,10 +93,10 @@ class Trainer():
                                                             config=model_config,
                                                             args=self.configs)
         adapter1_conf = AdapterConfig.load("pfeiffer")
-        adapter1_name = model.bert.load_adapter("dialect/arabic@mapmeld", config=adapter1_conf, model_name='aubmindlab/bert-base-arabert', with_head=False)
+        adapter1_name = model.bert.load_adapter("dialect/arabic@mapmeld", config=adapter1_conf, model_name='aubmindlab/bert-base-arabert')
 
         adapter2_conf = AdapterConfig.load("pfeiffer", non_linearity="relu", reduction_factor=2)
-        adapter2_name = model.bert.load_adapter("ar/wiki@ukp", config=adapter2_conf, model_name='bert-base-multilingual-cased', with_head=False)
+        adapter2_name = model.bert.load_adapter("ar/wiki@ukp", config=adapter2_conf, model_name='bert-base-multilingual-cased')
 
         adapter_setup = Fuse(adapter1_name, adapter2_name)
         model.bert.add_fusion(adapter_setup)
@@ -282,8 +282,8 @@ class Trainer():
         # model.bert.add_fusion(adapter_setup)
         # model.bert.set_active_adapters(adapter_setup)
         adapter_setup = Fuse("dialect-arabic", "ar")
-        model.bert.load_adapter("./saved-adapters/dialect-arabic", with_head=False)
-        model.bert.load_adapter("./saved-adapters/ar", with_head=False)
+        model.bert.load_adapter("./saved-adapters/dialect-arabic")
+        model.bert.load_adapter("./saved-adapters/ar")
         model.bert.load_adapter_fusion("./saved-fusion", "dialect-arabic,ar")
         model.bert.set_active_adapters(adapter_setup)
 

@@ -53,7 +53,7 @@ seed_list:
 - 512
 stage_2_training: true
 use_adapt_after_fusion: true
-use_adapters: true
+use_adapters: false
 use_neptune: false
 use_regional_mapping: false
 use_vert_att: false
