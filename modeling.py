@@ -23,7 +23,7 @@ class InvSqrtLR(LambdaLR):
             mini_epoch_size=1,
             temperature=1,
     ):
-        assert max_factor == 1
+        # assert max_factor == 1
         self.num_warmup = num_warmup
         self.max_factor = max_factor
         self.min_factor = min_factor
@@ -170,11 +170,13 @@ class Trainer():
 
                 if self.configs["early_stopping"] and early_stop_count_patience > self.configs["early_stopping_patience"]:
                     logger.info(f"Early Stopping, no improvements on dev score for no patience steps")
+                    print(f"Early Stopping, no improvements on dev score for no patience steps")
                     to_early_stop = True
                     break
 
                 if self.configs["checkpoint_on_improvement"] and curr_dev_f1 > best_dev_f1:
                     logger.info(f"Dev Loss Reduction from {best_dev_loss} to {curr_dev_loss}")
+                    print(f"Dev Loss Reduction from {best_dev_loss} to {curr_dev_loss}")
                     best_model_path = save_model(model, tokenizer, self.configs["checkpointing_path"], self.configs, step_no=global_step, current_dev_score=curr_dev_f1)
                     best_dev_f1 = curr_dev_f1
                     best_dev_loss = curr_dev_loss
