@@ -112,6 +112,7 @@ def parse_and_generate_loader(path_to_data_folder, tokenizer, params, classes_li
     index_path = os.path.join(filter_w_indexes, f"predictions_{split_set}.tsv") if filter_w_indexes is not None else None
     
     arabic_type = "MSA" if is_MSA else "DA"
+    print("THIS is parse_and_generate_loader() for split = ", split_set, "  and path -> ", path_to_data_folder)
     data_examples = parse_data(os.path.join(path_to_data_folder, f"{arabic_type}_{split_set}_labeled.tsv"), regional_mapping_content=regional_mapping, class_to_filter=class_to_filter, filter_w_indexes=index_path, pred_class=pred_class)
     
     if balance_data_max_examples is not None:

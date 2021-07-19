@@ -7,7 +7,7 @@ import torch
 from tqdm import tqdm, trange
 import numpy as np
 import os
-import neptune
+# import neptune
 import random 
 import model as model_classes
 from torch.optim.lr_scheduler import CyclicLR, LambdaLR
@@ -194,6 +194,8 @@ class Trainer():
         if self.configs["num_epochs"] > 0:
             final_dev_f1, final_dev_accuracy, final_dev_loss = evaluate_predictions(model, dev_loader, self.configs["model_class"], device=self.configs["device"])
             final_test_f1, final_test_accuracy, final_test_loss = evaluate_predictions(model, test_loader, self.configs["model_class"], device=self.configs["device"])
+            logger.info(f"[YUSUF] Finished Training #### Final test accuracy is  --> {final_test_accuracy} ### Final test F1 is ---> {final_test_f1} ### Final test loss is --> {final_test_loss}")
+            print(f"[YUSUF]Finished Training and final test accuracy is  --> {final_test_accuracy} ### Final test F1 is ---> {final_test_f1} ### Final test loss is --> {final_test_loss}")
         else:
             final_dev_accuracy = 0
 
@@ -208,7 +210,9 @@ class Trainer():
             final_dev_f1, final_dev_accuracy, final_dev_loss = evaluate_predictions(model, dev_loader, self.configs["model_class"], device=self.configs["device"], isTest=isTest_flag_for_dev_train)
             final_test_f1, final_test_accuracy, final_test_loss = evaluate_predictions(model, test_loader, self.configs["model_class"], device=self.configs["device"])
 
-   
+            logger.info(f"[YUSUF] Finished Training #### Final test accuracy is  --> {final_test_accuracy} ### Final test F1 is ---> {final_test_f1} ### Final test loss is --> {final_test_loss}")
+            print(f"[YUSUF]Finished Training and final test accuracy is  --> {final_test_accuracy} ### Final test F1 is ---> {final_test_f1} ### Final test loss is --> {final_test_loss}")
+
         # Final Model Saving
         if self.configs["save_final_model"]:
             last_model_path = save_model(model, tokenizer, self.configs["checkpointing_path"], self.configs, step_no=global_step, current_dev_score=final_dev_accuracy)
