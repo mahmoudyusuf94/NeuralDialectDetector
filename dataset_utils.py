@@ -68,6 +68,7 @@ def read_indexes_file(path_to_file, prediction_class=-1):
 
 
 def parse_data(path_to_file, separator="\t", regional_mapping_content=None, class_to_filter=None, filter_w_indexes=None, pred_class=-1):
+    group = ["Kuwait", "Oman", "United_Arab_Emirates", "Saudi_Arabia", "Bahrain", "Yemen", "Qatar"]
     with open(path_to_file, encoding="utf-8") as file_open:
         lines = file_open.readlines()
   
@@ -81,9 +82,13 @@ def parse_data(path_to_file, separator="\t", regional_mapping_content=None, clas
 
         lines_split = [x for index, x in enumerate(lines_split) if index in indexes_list]
         
-    elif class_to_filter is not None:
-        lines_split = [x for x in lines_split if x[2] in class_to_filter]
+    elif group is not None:
+        lines_split = [x for x in lines_split if x[2] in group]
 
+    print("Filtered lines for the following group")
+    print(group)
+    print("total examples for this group: ")
+    print(len(lines_split))
     return lines_split
 
 
@@ -100,6 +105,7 @@ def balance_data(data_examples, max_examples):
 
 
 def prepare_random_sampler(classes_list):
+    classes_list += [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
     class_sample_count = np.array([len(np.where(classes_list == t)[0]) for t in np.unique(classes_list)])
     weight = 1. / class_sample_count
     samples_weight = np.array([weight[t] for t in classes_list])
