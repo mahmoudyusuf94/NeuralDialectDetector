@@ -316,4 +316,5 @@ if __name__ == "__main__":
     trainer_class = Trainer(config_file_path=config_file_path)
     # trainer_class.train()
     # trainer_class.train_with_multiple_seeds(3)
-    trainer_class.train_and_evaluate_with_multiple_seeds(1, seeds_from_config=True, eval_on_train=False)
+    # trainer_class.train_and_evaluate_with_multiple_seeds(1, seeds_from_config=True, eval_on_train=False)
+    print(trainer_class.evaluate_from_path(trainer_class.configs["model_name_path"]))
