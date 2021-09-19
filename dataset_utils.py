@@ -68,7 +68,7 @@ def read_indexes_file(path_to_file, prediction_class=-1):
 
 
 def parse_data(path_to_file, separator="\t", regional_mapping_content=None, class_to_filter=None, filter_w_indexes=None, pred_class=-1):
-    group = ["Sudan", "Egypt"]
+    group = ["Somalia", "Djibouti", "Mauritania"]
     with open(path_to_file, encoding="utf-8") as file_open:
         lines = file_open.readlines()
   
