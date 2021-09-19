@@ -72,9 +72,9 @@ def parse_data(path_to_file, separator="\t", regional_mapping_content=None, clas
         lines = file_open.readlines()
   
     lines_split = [line.strip().split("\t")[0:4] for line in lines[1:]]    
-
+# hekal
     if regional_mapping_content is not None:
-        lines_split = [(x[0], x[1], regional_mapping_content[x[2]]) for x in lines_split]
+        lines_split = [(x[0], x[1], regional_mapping_content[x[2]], x[2]) for x in lines_split]
 
     if filter_w_indexes is not None:
         indexes_list = read_indexes_file(filter_w_indexes, prediction_class=pred_class)
@@ -108,7 +108,7 @@ def prepare_random_sampler(classes_list):
     sampler = WeightedRandomSampler(samples_weight, len(samples_weight))
     return sampler
 
-def parse_and_generate_loader(path_to_data_folder, tokenizer, params, classes_list, split_set="train", locale="ar", random_sampler=True, masking_percentage=0.2, class_to_filter=None, regional_mapping=None, filter_w_indexes=None, pred_class=-1, max_seq_len=128, balance_data_max_examples=None, is_province=False, is_MSA=False, handle_imbalance_sampler=False):
+def parse_and_generate_loader(path_to_data_folder, tokenizer, params, classes_list, original_classes_list, split_set="train", locale="ar", random_sampler=True, masking_percentage=0.2, class_to_filter=None, regional_mapping=None, filter_w_indexes=None, pred_class=-1, max_seq_len=128, balance_data_max_examples=None, is_province=False, is_MSA=False, handle_imbalance_sampler=False):
     index_path = os.path.join(filter_w_indexes, f"predictions_{split_set}.tsv") if filter_w_indexes is not None else None
     
     arabic_type = "MSA" if is_MSA else "DA"
@@ -117,7 +117,7 @@ def parse_and_generate_loader(path_to_data_folder, tokenizer, params, classes_li
     if balance_data_max_examples is not None:
         data_examples = balance_data(data_examples, balance_data_max_examples)
 
-    dataset, imbalance_handling_sampler = load_and_cache_examples(data_examples, tokenizer, classes_list, is_province=is_province, max_seq_len=max_seq_len, masking_percentage=masking_percentage)
+    dataset, imbalance_handling_sampler = load_and_cache_examples(data_examples, tokenizer, classes_list, original_classes_list, is_province=is_province, max_seq_len=max_seq_len, masking_percentage=masking_percentage)
     if handle_imbalance_sampler:
         data_sampler = imbalance_handling_sampler
     else:
@@ -130,6 +130,9 @@ def parse_and_generate_loaders(path_to_data_folder, tokenizer, batch_size=2, mas
     params = {'batch_size': batch_size}
     params_dev = {'batch_size': batch_size // 2}
     regional_mapping_content = parse_mapping_list(path_to_data_folder) if use_regional_mapping else None
+    classes_list = parse_classes_list(path_to_data_folder, is_province) if class_to_filter is None else class_to_filter
+    classes_list.sort()
+    original_classes_list = classes_list
     if regional_mapping_content is not None:
         classes_list = list(set(regional_mapping_content.values()))
         classes_list.sort()
@@ -140,18 +143,18 @@ def parse_and_generate_loaders(path_to_data_folder, tokenizer, batch_size=2, mas
         classes_list.sort()
         print("Classes that will run: ")
         print(classes_list)
-    training_generator = parse_and_generate_loader(path_to_data_folder, tokenizer, params, classes_list, split_set="train", locale="ar", masking_percentage=masking_percentage, class_to_filter=class_to_filter, regional_mapping=regional_mapping_content, max_seq_len=max_seq_len, balance_data_max_examples=balance_data_max_examples, is_province=is_province, is_MSA=is_MSA, handle_imbalance_sampler=sampler_imbalance)
-    dev_generator = parse_and_generate_loader(path_to_data_folder, tokenizer, params_dev, classes_list, split_set="dev", locale="ar", masking_percentage=masking_percentage, class_to_filter=class_to_filter, regional_mapping=regional_mapping_content, max_seq_len=max_seq_len, is_province=is_province, is_MSA=is_MSA, handle_imbalance_sampler=sampler_imbalance)
-    test_generator = parse_and_generate_loader(path_to_data_folder, tokenizer, params_dev, classes_list, split_set="dev", locale="ar", masking_percentage=masking_percentage, class_to_filter=class_to_filter, regional_mapping=regional_mapping_content, filter_w_indexes=filter_w_indexes, pred_class=pred_class, max_seq_len=max_seq_len, is_province=is_province, is_MSA=is_MSA, handle_imbalance_sampler=sampler_imbalance)
+    training_generator = parse_and_generate_loader(path_to_data_folder, tokenizer, params, classes_list, original_classes_list,split_set="train", locale="ar", masking_percentage=masking_percentage, class_to_filter=class_to_filter, regional_mapping=regional_mapping_content, max_seq_len=max_seq_len, balance_data_max_examples=balance_data_max_examples, is_province=is_province, is_MSA=is_MSA, handle_imbalance_sampler=sampler_imbalance)
+    dev_generator = parse_and_generate_loader(path_to_data_folder, tokenizer, params_dev, classes_list, original_classes_list, split_set="dev", locale="ar", masking_percentage=masking_percentage, class_to_filter=class_to_filter, regional_mapping=regional_mapping_content, max_seq_len=max_seq_len, is_province=is_province, is_MSA=is_MSA, handle_imbalance_sampler=sampler_imbalance)
+    test_generator = parse_and_generate_loader(path_to_data_folder, tokenizer, params_dev, classes_list, original_classes_list, split_set="dev", locale="ar", masking_percentage=masking_percentage, class_to_filter=class_to_filter, regional_mapping=regional_mapping_content, filter_w_indexes=filter_w_indexes, pred_class=pred_class, max_seq_len=max_seq_len, is_province=is_province, is_MSA=is_MSA, handle_imbalance_sampler=sampler_imbalance)
 
     return training_generator, dev_generator, test_generator, len(classes_list), None
 
 # From : https://github.com/monologg/JointBERT/blob/master/predict.py
-def load_and_cache_examples(examples, tokenizer, classes_list, is_province, pad_token_ignore_index=0, max_seq_len=128, masking_percentage=0.2):
+def load_and_cache_examples(examples, tokenizer, classes_list, original_classes_list, is_province, pad_token_ignore_index=0, max_seq_len=128, masking_percentage=0.2):
 
         # Use cross entropy ignore index as padding label id so that only real label ids contribute to the loss later
     pad_token_label_id = pad_token_ignore_index
-    features = convert_examples_to_features(examples, classes_list, max_seq_len, tokenizer,
+    features = convert_examples_to_features(examples, classes_list, original_classes_list, max_seq_len, tokenizer,
                                             is_province=is_province,pad_token_label_id=pad_token_label_id, masking_percentage=masking_percentage)
 
     # Convert to Tensors and build dataset
@@ -159,17 +162,18 @@ def load_and_cache_examples(examples, tokenizer, classes_list, is_province, pad_
     all_attention_mask = torch.tensor([f[1] for f in features], dtype=torch.long)
     all_token_type_ids = torch.tensor([f[2] for f in features], dtype=torch.long)
     all_class_label_ids = torch.tensor([f[3] for f in features], dtype=torch.long)
+    all_class_original_label_ids = torch.tensor([f[4] for f in features], dtype=torch.long)
     all_input_ids_w_masking = torch.tensor([f[4] for f in features], dtype=torch.long)
     all_sentence_indices = torch.tensor([f[5] for f in features], dtype=torch.long)
     
     imbalance_handling_sampler = prepare_random_sampler([f[3] for f in features])
     dataset = TensorDataset(all_input_ids, all_attention_mask,
-                            all_token_type_ids, all_class_label_ids, all_input_ids_w_masking, all_sentence_indices)
+                            all_token_type_ids, all_class_label_ids, all_input_ids_w_masking, all_sentence_indices, all_class_original_label_ids)
     return dataset, imbalance_handling_sampler
 
 
 # From : https://github.com/monologg/JointBERT/blob/master/predict.py
-def convert_examples_to_features(examples, classes_list, max_seq_len, 
+def convert_examples_to_features(examples, classes_list, original_classes_list, max_seq_len, 
                                  tokenizer,
                                  is_province=False,
                                  pad_token_label_id=-100,
@@ -246,8 +250,10 @@ def convert_examples_to_features(examples, classes_list, max_seq_len,
         assert len(input_ids_w_masking) == max_seq_len, "Error with input with masking length {} vs {}".format(len(input_ids_w_masking), max_seq_len)
 
         example_idx = 3 if is_province else 2
+        original_idx = 3
         if example[example_idx].strip("\n") in classes_list:
             class_label_id = classes_list.index(example[example_idx].strip("\n"))
+            class_label_original_id = original_classes_list.index(example[original_idx].strip("\n"))
         else:
             class_label_id = -1
 
@@ -264,6 +270,7 @@ def convert_examples_to_features(examples, classes_list, max_seq_len,
                           attention_mask,
                           token_type_ids,
                           class_label_id,
+                          class_label_original_id,
                           input_ids_w_masking,
                           ex_index
                           ))

@@ -79,6 +79,12 @@ def evaluate_predictions(model, evaluation_loader, model_class_name, device="cpu
     for batch in no_batches:
         batch = [x.to(device) for x in batch]
         label_ids_in = batch[3] if not isTest else None
+        label_original_ids = batch[4]
+        print("lable IDS :")
+        print(label_ids_in)
+        print("Original labels IDs: ")
+        print(type(label_original_ids))
+        print(label_original_ids)
         outputs = model(input_ids=batch[0], attention_mask=batch[1], token_type_ids=batch[2], class_label_ids=label_ids_in, input_ids_masked=batch[4])
         eval_loss, (logits,) = outputs[:2]
         final_eval_loss += eval_loss.mean().item() if not isTest else 0
