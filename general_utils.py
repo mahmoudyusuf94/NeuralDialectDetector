@@ -5,6 +5,9 @@ import torch
 import numpy as np
 import json
 import uuid
+# import model as model_classes
+from transformers import AutoTokenizer, AutoModel, AutoConfig, AdamW, get_linear_schedule_with_warmup
+
 
 from sklearn.metrics import f1_score
 
@@ -67,8 +70,14 @@ def random_mask_tokens(input_ids, atttention_mask, masking_percentage, mask_id, 
     return input_ids
 
 
-def evaluate_predictions(model, evaluation_loader, model_class_name, device="cpu", return_pred_lists=False, isTest=False):
+def evaluate_predictions(model, evaluation_loader, model_class_name, model_ar, model_eg, model_maghrib, model_other, model_levantine, device="cpu", return_pred_lists=False, isTest=False):    
     model.eval()
+    model_ar.eval()
+    model_eg.eval()
+    model_maghrib.eval()
+    model_levantine.eval()
+    model_other.eval()
+
     no_batches = tqdm(evaluation_loader, desc="Batch Evaluation Loop")
     final_eval_loss, correct = 0, 0
     total_no_steps, num_samples = 0, 0
@@ -79,13 +88,14 @@ def evaluate_predictions(model, evaluation_loader, model_class_name, device="cpu
     for batch in no_batches:
         batch = [x.to(device) for x in batch]
         label_ids_in = batch[3] if not isTest else None
-        label_original_ids = batch[4]
-        print("lable IDS :")
-        print(label_ids_in)
-        print("Original labels IDs: ")
-        print(type(label_original_ids))
-        print(label_original_ids)
-        outputs = model(input_ids=batch[0], attention_mask=batch[1], token_type_ids=batch[2], class_label_ids=label_ids_in, input_ids_masked=batch[4])
+        original_label_ids = batch[4]
+        # label_original_ids = batch[4]
+        # print("lable IDS :")
+        # print(label_ids_in)
+        # print("Original labels IDs: ")
+        # print(type(label_original_ids))
+        # print(label_original_ids)
+        outputs = model(input_ids=batch[0], attention_mask=batch[1], token_type_ids=batch[2], class_label_ids=label_ids_in, input_ids_masked=batch[5])
         eval_loss, (logits,) = outputs[:2]
         final_eval_loss += eval_loss.mean().item() if not isTest else 0
         total_no_steps += 1
@@ -93,10 +103,29 @@ def evaluate_predictions(model, evaluation_loader, model_class_name, device="cpu
         if model_class_name == "ArabicDialectBERT":
             logits_list.extend(torch.nn.functional.softmax(logits, dim=-1).detach().cpu().numpy())
             label_ids = logits.argmax(axis=1)
-            g_truths.extend(batch[3].detach().cpu().numpy())
+            region_id = label_ids.item()
+            
+            if region_id == 0: #'Arabian_Peninsula'
+                country_model = model_ar
+            elif region_id ==1: #'Egypto_Sudanic'
+                country_model = model_eg
+            elif region_id == 2: #'Levantine'
+                country_model = model_levantine
+            elif region_id == 3: #'Maghrebi'
+                country_model = model_maghrib
+            elif region_id == 5: #'Other'
+                country_model = model_other
+
+            outputs = country_model(input_ids=batch[0], attention_mask=batch[1], token_type_ids=batch[2], class_label_ids=original_label_ids, input_ids_masked=batch[5])
+            eval_loss, (logits,) = outputs[:2]
+            label_ids = logits.argmax(axis=1)
+            g_truths.extend(batch[4].detach().cpu().numpy()) #changed to 4 to get the original label ids
+            if (region_id == 4):
+                label_ids = torch.tensor([4])
+                label_ids = label_ids.to(device="cuda")
             preds.extend(label_ids.detach().cpu().numpy())
-            list_of_sentence_ids.extend(batch[5].detach().cpu().numpy())
-            correct += (label_ids == batch[3]).sum()
+            list_of_sentence_ids.extend(batch[6].detach().cpu().numpy())
+            correct += (label_ids == batch[4]).sum()
             num_samples += label_ids.size(0)
     
     if model_class_name == "ArabicDialectBERT":

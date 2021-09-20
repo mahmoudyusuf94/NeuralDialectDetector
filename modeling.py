@@ -265,14 +265,41 @@ class Trainer():
 
         model.to(self.configs["device"])
 
-        final_dev_f1, final_dev_accuracy, final_dev_loss, y_true_dev, y_pred_dev, sentence_id_dev, logits_list_dev = evaluate_predictions(model, dev_loader, self.configs["model_class"], device=self.configs["device"], return_pred_lists=True, isTest=isTest_flag_for_dev_train)
+        conf = read_yaml_file("config-country.yaml")
+        conf["num_labels"] = 21
+        conf["mask_id"] = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
+        
+        model_ar_config = AutoConfig.from_pretrained("arab/checkpoints_marbert/MARBERT_DA_Country_100")
+        model_ar = getattr(model_classes, "ArabicDialectBERT").from_pretrained("arab/checkpoints_marbert/MARBERT_DA_Country_100", config=model_ar_config, args=conf)
+        model_ar.to(self.configs["device"])
+
+
+        model_eg_config = AutoConfig.from_pretrained("eg/checkpoints_marbert/MARBERT_DA_Country_100")
+        model_eg = getattr(model_classes, "ArabicDialectBERT").from_pretrained("eg/checkpoints_marbert/MARBERT_DA_Country_100", config=model_eg_config, args=conf)
+        model_eg.to(self.configs["device"])
+
+        
+        model_maghrib_config = AutoConfig.from_pretrained("maghreb/checkpoints_marbert/MARBERT_DA_Country_100")
+        model_maghrib = getattr(model_classes, "ArabicDialectBERT").from_pretrained("maghreb/checkpoints_marbert/MARBERT_DA_Country_100", config=model_maghrib_config, args=conf)
+        model_maghrib.to(self.configs["device"])
+
+        
+        model_other_config = AutoConfig.from_pretrained("other/checkpoints_marbert/MARBERT_DA_Country_100")
+        model_other = getattr(model_classes, "ArabicDialectBERT").from_pretrained("other/checkpoints_marbert/MARBERT_DA_Country_100", config=model_other_config, args=conf)
+        model_other.to(self.configs["device"])
+
+        model_levantine_config = AutoConfig.from_pretrained("levantine/checkpoints_marbert/MARBERT_DA_Country_100")
+        model_levantine = getattr(model_classes, "ArabicDialectBERT").from_pretrained("levantine/checkpoints_marbert/MARBERT_DA_Country_100", config=model_levantine_config, args=conf)
+        model_levantine.to(self.configs["device"])
+
+        final_dev_f1, final_dev_accuracy, final_dev_loss, y_true_dev, y_pred_dev, sentence_id_dev, logits_list_dev = evaluate_predictions(model, dev_loader, self.configs["model_class"], model_ar, model_eg, model_maghrib, model_other, model_levantine, device=self.configs["device"], return_pred_lists=True, isTest=isTest_flag_for_dev_train)
         dump_predictions(sentence_id_dev, logits_list_dev, y_pred_dev, y_true_dev, os.path.join(model_path, "predictions_dev.tsv"))
         
-        final_test_f1, final_test_accuracy, final_test_loss, y_true_test, y_pred_test, sentence_id_test, logits_list_test = evaluate_predictions(model, test_loader, self.configs["model_class"], device=self.configs["device"], return_pred_lists=True, isTest=True)
-        dump_predictions(sentence_id_test, logits_list_test, y_pred_test, y_true_test, os.path.join(model_path, "predictions_test.tsv"))
+        # final_test_f1, final_test_accuracy, final_test_loss, y_true_test, y_pred_test, sentence_id_test, logits_list_test = evaluate_predictions(model, test_loader, self.configs["model_class"], device=self.configs["device"], return_pred_lists=True, isTest=True)
+        # dump_predictions(sentence_id_test, logits_list_test, y_pred_test, y_true_test, os.path.join(model_path, "predictions_test.tsv"))
 
         dict_of_results["DEV"] = {"F1": final_dev_f1, "Accuracy": final_dev_accuracy, "Loss": final_dev_loss} 
-        dict_of_results["TEST"] = {"F1": final_test_f1, "Accuracy": final_test_accuracy, "Loss": final_test_loss}
+        # dict_of_results["TEST"] = {"F1": final_test_f1, "Accuracy": final_test_accuracy, "Loss": final_test_loss}
 
         if evaluate_on_train:
             final_train_f1, final_train_accuracy, final_train_loss, y_true_train, y_pred_train, sentence_id_train, logits_list_train = evaluate_predictions(model, train_loader, self.configs["model_class"], device=self.configs["device"], return_pred_lists=True, isTest=isTest_flag_for_dev_train)

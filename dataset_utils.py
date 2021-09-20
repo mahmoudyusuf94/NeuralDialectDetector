@@ -2,6 +2,7 @@ import torch
 import logging
 import os
 from torch.utils.data import TensorDataset, RandomSampler, WeightedRandomSampler
+from transformers import AutoTokenizer, AutoModel, AutoConfig, AdamW, get_linear_schedule_with_warmup
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -163,12 +164,12 @@ def load_and_cache_examples(examples, tokenizer, classes_list, original_classes_
     all_token_type_ids = torch.tensor([f[2] for f in features], dtype=torch.long)
     all_class_label_ids = torch.tensor([f[3] for f in features], dtype=torch.long)
     all_class_original_label_ids = torch.tensor([f[4] for f in features], dtype=torch.long)
-    all_input_ids_w_masking = torch.tensor([f[4] for f in features], dtype=torch.long)
-    all_sentence_indices = torch.tensor([f[5] for f in features], dtype=torch.long)
+    all_input_ids_w_masking = torch.tensor([f[5] for f in features], dtype=torch.long)
+    all_sentence_indices = torch.tensor([f[6] for f in features], dtype=torch.long)
     
     imbalance_handling_sampler = prepare_random_sampler([f[3] for f in features])
     dataset = TensorDataset(all_input_ids, all_attention_mask,
-                            all_token_type_ids, all_class_label_ids, all_input_ids_w_masking, all_sentence_indices, all_class_original_label_ids)
+                            all_token_type_ids, all_class_label_ids, all_class_original_label_ids, all_input_ids_w_masking, all_sentence_indices)
     return dataset, imbalance_handling_sampler
 
 
