@@ -6,6 +6,9 @@ import numpy as np
 import json
 import uuid
 # import model as model_classes
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 from transformers import AutoTokenizer, AutoModel, AutoConfig, AdamW, get_linear_schedule_with_warmup
 
 
@@ -85,6 +88,8 @@ def evaluate_predictions(model, evaluation_loader, model_class_name, model_ar, m
     logits_list = []
     y_true = []
     y_pred = []
+    region_confusion_matrix = np.zeros((6, 6))
+    confusion_matrix = np.zeros((21, 21))
     for batch in no_batches:
         batch = [x.to(device) for x in batch]
         label_ids_in = batch[3] if not isTest else None
@@ -104,26 +109,51 @@ def evaluate_predictions(model, evaluation_loader, model_class_name, model_ar, m
             logits_list.extend(torch.nn.functional.softmax(logits, dim=-1).detach().cpu().numpy())
             label_ids = logits.argmax(axis=1)
             region_id = label_ids.item()
-            
-            if region_id == 0: #'Arabian_Peninsula'
-                country_model = model_ar
-            elif region_id ==1: #'Egypto_Sudanic'
-                country_model = model_eg
-            elif region_id == 2: #'Levantine'
-                country_model = model_levantine
-            elif region_id == 3: #'Maghrebi'
-                country_model = model_maghrib
-            elif region_id == 5: #'Other'
-                country_model = model_other
+            region_confusion_matrix[batch[3].item(), region_id] += 1
 
-            outputs = country_model(input_ids=batch[0], attention_mask=batch[1], token_type_ids=batch[2], class_label_ids=original_label_ids, input_ids_masked=batch[5])
-            eval_loss, (logits,) = outputs[:2]
-            label_ids = logits.argmax(axis=1)
-            g_truths.extend(batch[4].detach().cpu().numpy()) #changed to 4 to get the original label ids
+###        
             if (region_id == 4):
                 label_ids = torch.tensor([4])
                 label_ids = label_ids.to(device="cuda")
+            else :
+              if region_id == 0: #'Arabian_Peninsula'
+                  country_model = model_ar
+              elif region_id ==1: #'Egypto_Sudanic'
+                  country_model = model_eg
+              elif region_id == 2: #'Levantine'
+                  country_model = model_levantine
+              elif region_id == 3: #'Maghrebi'
+                  country_model = model_maghrib
+              elif region_id == 5: #'Other'
+                  country_model = model_other
+              outputs = country_model(input_ids=batch[0], attention_mask=batch[1], token_type_ids=batch[2], class_label_ids=original_label_ids, input_ids_masked=batch[5])
+              eval_loss, (logits,) = outputs[:2]
+              label_ids = logits.argmax(axis=1)         
+####
+            # if region_id == 0: #'Arabian_Peninsula'
+            #     country_model = model_ar
+            # elif region_id ==1: #'Egypto_Sudanic'
+            #     country_model = model_eg
+            # elif region_id == 2: #'Levantine'
+            #     country_model = model_levantine
+            # elif region_id == 3: #'Maghrebi'
+            #     country_model = model_maghrib
+            # elif region_id == 5: #'Other'
+            #     country_model = model_other
+
+            # outputs = country_model(input_ids=batch[0], attention_mask=batch[1], token_type_ids=batch[2], class_label_ids=original_label_ids, input_ids_masked=batch[5])
+            # eval_loss, (logits,) = outputs[:2]
+            # label_ids = logits.argmax(axis=1)
+
+            # if (region_id == 4):
+            #     label_ids = torch.tensor([4])
+            #     label_ids = label_ids.to(device="cuda")
+            
+            g_truths.extend(batch[4].detach().cpu().numpy()) #changed to 4 to get the original label ids
             preds.extend(label_ids.detach().cpu().numpy())
+
+            confusion_matrix[batch[4].item(), label_ids.item()] += 1
+            
             list_of_sentence_ids.extend(batch[6].detach().cpu().numpy())
             correct += (label_ids == batch[4]).sum()
             num_samples += label_ids.size(0)
@@ -137,7 +167,25 @@ def evaluate_predictions(model, evaluation_loader, model_class_name, model_ar, m
     else:
         f1 = 0 
         accuracy = 0
-        
+
+    plt.figure(figsize=(15,10))
+
+    class_names = ['Algeria', 'Bahrain', 'Djibouti', 'Egypt', 'Iraq', 'Jordan', 'Kuwait', 'Lebanon', 'Libya', 'Mauritania', 'Morocco', 'Oman', 'Palestine', 'Qatar', 'Saudi_Arabia', 'Somalia', 'Sudan', 'Syria', 'Tunisia', 'United_Arab_Emirates', 'Yemen']
+
+    df_cm = pd.DataFrame(confusion_matrix, index=class_names, columns=class_names).astype(int)
+    heatmap = sns.heatmap(df_cm, annot=True, fmt="d")
+
+    heatmap.yaxis.set_ticklabels(heatmap.yaxis.get_ticklabels(), rotation=0, ha='right',fontsize=15)
+    heatmap.xaxis.set_ticklabels(heatmap.xaxis.get_ticklabels(), rotation=45, ha='right',fontsize=15)
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.show()
+    print("Regions Confusion Matrix ---> ")
+    print(region_confusion_matrix)
+
+    print("classes confusion matrix --->")
+    print(confusion_matrix)
+
     eval_loss = final_eval_loss / total_no_steps
 
     if return_pred_lists:
