@@ -133,6 +133,8 @@ def parse_and_generate_loaders(path_to_data_folder, tokenizer, batch_size=2, mas
     if regional_mapping_content is not None:
         classes_list = list(set(regional_mapping_content.values()))
         classes_list.sort()
+        print("Classes that will run: ")
+        print(classes_list)
     else:
         classes_list = parse_classes_list(path_to_data_folder, is_province) if class_to_filter is None else class_to_filter
         classes_list.sort()
