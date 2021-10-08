@@ -73,7 +73,7 @@ def random_mask_tokens(input_ids, atttention_mask, masking_percentage, mask_id, 
     return input_ids
 
 
-def evaluate_predictions(model, evaluation_loader, model_class_name, model_ar, model_eg, model_maghrib, model_other, model_levantine, device="cpu", return_pred_lists=False, isTest=False):    
+def evaluate_predictions(model, evaluation_loader, model_class_name, model_ar, model_eg, model_maghrib, model_other, model_levantine, model_gp, device="cpu", return_pred_lists=False, isTest=False):    
     model.eval()
     model_ar.eval()
     model_eg.eval()
@@ -112,23 +112,23 @@ def evaluate_predictions(model, evaluation_loader, model_class_name, model_ar, m
             region_confusion_matrix[batch[3].item(), region_id] += 1
 
 ###        
-            if (region_id == 4):
-                label_ids = torch.tensor([4])
-                label_ids = label_ids.to(device="cuda")
-            else :
-              if region_id == 0: #'Arabian_Peninsula'
-                  country_model = model_ar
-              elif region_id ==1: #'Egypto_Sudanic'
-                  country_model = model_eg
-              elif region_id == 2: #'Levantine'
-                  country_model = model_levantine
-              elif region_id == 3: #'Maghrebi'
-                  country_model = model_maghrib
-              elif region_id == 5: #'Other'
-                  country_model = model_other
-              outputs = country_model(input_ids=batch[0], attention_mask=batch[1], token_type_ids=batch[2], class_label_ids=original_label_ids, input_ids_masked=batch[5])
-              eval_loss, (logits,) = outputs[:2]
-              label_ids = logits.argmax(axis=1)         
+
+            if region_id == 0: #'Arabian_Peninsula'
+                country_model = model_ar
+            elif region_id ==1: #'Egypto_Sudanic'
+                country_model = model_eg
+            elif region_id == 3: #'Levantine'
+                country_model = model_levantine
+            elif region_id == 4: #'Maghrebi'
+                country_model = model_maghrib
+            elif region_id == 5: #'Other'
+                country_model = model_other
+            elif region_id == 2: #'GreaterPalestine'
+                country_model = model_gp
+            
+            outputs = country_model(input_ids=batch[0], attention_mask=batch[1], token_type_ids=batch[2], class_label_ids=original_label_ids, input_ids_masked=batch[5])
+            eval_loss, (logits,) = outputs[:2]
+            label_ids = logits.argmax(axis=1)         
 ####
             # if region_id == 0: #'Arabian_Peninsula'
             #     country_model = model_ar

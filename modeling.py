@@ -292,7 +292,11 @@ class Trainer():
         model_levantine = getattr(model_classes, "ArabicDialectBERT").from_pretrained("levantine/checkpoints_marbert/MARBERT_DA_Country_100", config=model_levantine_config, args=conf)
         model_levantine.to(self.configs["device"])
 
-        final_dev_f1, final_dev_accuracy, final_dev_loss, y_true_dev, y_pred_dev, sentence_id_dev, logits_list_dev = evaluate_predictions(model, dev_loader, self.configs["model_class"], model_ar, model_eg, model_maghrib, model_other, model_levantine, device=self.configs["device"], return_pred_lists=True, isTest=isTest_flag_for_dev_train)
+        model_gp_config = AutoConfig.from_pretrained("gp/checkpoints_marbert/MARBERT_DA_Country_100")
+        model_gp = getattr(model_classes, "ArabicDialectBERT").from_pretrained("gp/checkpoints_marbert/MARBERT_DA_Country_100", config=model_gp_config, args=conf)
+        model_gp.to(self.configs["device"])
+        
+        final_dev_f1, final_dev_accuracy, final_dev_loss, y_true_dev, y_pred_dev, sentence_id_dev, logits_list_dev = evaluate_predictions(model, dev_loader, self.configs["model_class"], model_ar, model_eg, model_maghrib, model_other, model_levantine, model_gp, device=self.configs["device"], return_pred_lists=True, isTest=isTest_flag_for_dev_train)
         dump_predictions(sentence_id_dev, logits_list_dev, y_pred_dev, y_true_dev, os.path.join(model_path, "predictions_dev.tsv"))
         
         # final_test_f1, final_test_accuracy, final_test_loss, y_true_test, y_pred_test, sentence_id_test, logits_list_test = evaluate_predictions(model, test_loader, self.configs["model_class"], device=self.configs["device"], return_pred_lists=True, isTest=True)
