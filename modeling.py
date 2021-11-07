@@ -191,7 +191,7 @@ class Trainer():
         # Final Evaluation Loop
         if self.configs["num_epochs"] > 0:
             final_dev_f1, final_dev_accuracy, final_dev_loss = evaluate_predictions(model, dev_loader, self.configs["model_class"], device=self.configs["device"])
-            final_test_f1, final_test_accuracy, final_test_loss = evaluate_predictions(model, test_loader, self.configs["model_class"], device=self.configs["device"], isTest=True)
+            final_test_f1, final_test_accuracy, final_test_loss = evaluate_predictions(model, test_loader, self.configs["model_class"], device=self.configs["device"])
         else:
             final_dev_accuracy = 0
 
@@ -204,7 +204,7 @@ class Trainer():
 
         if self.configs["num_epochs"] > 0:
             final_dev_f1, final_dev_accuracy, final_dev_loss = evaluate_predictions(model, dev_loader, self.configs["model_class"], device=self.configs["device"], isTest=isTest_flag_for_dev_train)
-            final_test_f1, final_test_accuracy, final_test_loss = evaluate_predictions(model, test_loader, self.configs["model_class"], device=self.configs["device"], isTest=True)
+            final_test_f1, final_test_accuracy, final_test_loss = evaluate_predictions(model, test_loader, self.configs["model_class"], device=self.configs["device"])
             
             logger.info(f"[YUSUF] Finished Training #### Final test accuracy is  --> {final_test_accuracy} ### Final test F1 is ---> {final_test_f1} ### Final test loss is --> {final_test_loss}")
             
@@ -295,11 +295,11 @@ class Trainer():
         final_dev_f1, final_dev_accuracy, final_dev_loss, y_true_dev, y_pred_dev, sentence_id_dev, logits_list_dev = evaluate_predictions(model, dev_loader, self.configs["model_class"], model_ar, model_eg, model_maghrib, model_other, model_levantine, device=self.configs["device"], return_pred_lists=True, isTest=isTest_flag_for_dev_train)
         dump_predictions(sentence_id_dev, logits_list_dev, y_pred_dev, y_true_dev, os.path.join(model_path, "predictions_dev.tsv"))
         
-        # final_test_f1, final_test_accuracy, final_test_loss, y_true_test, y_pred_test, sentence_id_test, logits_list_test = evaluate_predictions(model, test_loader, self.configs["model_class"], device=self.configs["device"], return_pred_lists=True, isTest=True)
-        # dump_predictions(sentence_id_test, logits_list_test, y_pred_test, y_true_test, os.path.join(model_path, "predictions_test.tsv"))
+        final_test_f1, final_test_accuracy, final_test_loss, y_true_test, y_pred_test, sentence_id_test, logits_list_test = evaluate_predictions(model, test_loader, self.configs["model_class"], model_ar, model_eg, model_maghrib, model_other, model_levantine, device=self.configs["device"], return_pred_lists=True)
+        dump_predictions(sentence_id_test, logits_list_test, y_pred_test, y_true_test, os.path.join(model_path, "predictions_test.tsv"))
 
         dict_of_results["DEV"] = {"F1": final_dev_f1, "Accuracy": final_dev_accuracy, "Loss": final_dev_loss} 
-        # dict_of_results["TEST"] = {"F1": final_test_f1, "Accuracy": final_test_accuracy, "Loss": final_test_loss}
+        dict_of_results["TEST"] = {"F1": final_test_f1, "Accuracy": final_test_accuracy, "Loss": final_test_loss}
 
         if evaluate_on_train:
             final_train_f1, final_train_accuracy, final_train_loss, y_true_train, y_pred_train, sentence_id_train, logits_list_train = evaluate_predictions(model, train_loader, self.configs["model_class"], device=self.configs["device"], return_pred_lists=True, isTest=isTest_flag_for_dev_train)
