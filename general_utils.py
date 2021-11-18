@@ -69,35 +69,36 @@ def random_mask_tokens(input_ids, atttention_mask, masking_percentage, mask_id, 
 
 def evaluate_predictions(model, evaluation_loader, model_class_name, device="cpu", return_pred_lists=False, isTest=False, split=""):
     model.eval()
-    no_batches = tqdm(evaluation_loader, desc="Batch Evaluation Loop")
-    final_eval_loss, correct = 0, 0
-    total_no_steps, num_samples = 0, 0
-    preds, g_truths, list_of_sentence_ids = [], [], []
-    logits_list = []
-    y_true = []
-    y_pred = []
-    confusion_matrix = np.zeros((21, 21), dtype=np.int16)
-    for batch in no_batches:
-        batch = [x.to(device) for x in batch]
-        label_ids_in = batch[3] if not isTest else None
-        outputs = model(input_ids=batch[0], attention_mask=batch[1], token_type_ids=batch[2], class_label_ids=label_ids_in, input_ids_masked=batch[4])
-        eval_loss, (logits,) = outputs[:2]
-        final_eval_loss += eval_loss.mean().item() if not isTest else 0
-        total_no_steps += 1
+    with torch.no_grad():
+        no_batches = tqdm(evaluation_loader, desc="Batch Evaluation Loop")
+        final_eval_loss, correct = 0, 0
+        total_no_steps, num_samples = 0, 0
+        preds, g_truths, list_of_sentence_ids = [], [], []
+        logits_list = []
+        y_true = []
+        y_pred = []
+        confusion_matrix = np.zeros((21, 21), dtype=np.int16)
+        for batch in no_batches:
+            batch = [x.to(device) for x in batch]
+            label_ids_in = batch[3] if not isTest else None
+            outputs = model(input_ids=batch[0], attention_mask=batch[1], token_type_ids=batch[2], class_label_ids=label_ids_in, input_ids_masked=batch[4])
+            eval_loss, (logits,) = outputs[:2]
+            final_eval_loss += eval_loss.mean().item() if not isTest else 0
+            total_no_steps += 1
 
-        if model_class_name == "ArabicDialectBERT":
-            logits_list.extend(torch.nn.functional.softmax(logits, dim=-1).detach().cpu().numpy())
-            label_ids = logits.argmax(axis=1)
-            g_truths.extend(batch[3].detach().cpu().numpy())
-            preds.extend(label_ids.detach().cpu().numpy())
-            # confusion_matrix[batch[3].item(), label_ids.item()] += 1
-            list_of_sentence_ids.extend(batch[5].detach().cpu().numpy())
-            correct += (label_ids == batch[3]).sum()
-            num_samples += label_ids.size(0)
-            preds_list = label_ids.tolist()
-            truths_list = batch[3].tolist()
-            for i in range (len(preds_list)):
-                confusion_matrix[truths_list[i], preds_list[i]] += 1
+            if model_class_name == "ArabicDialectBERT":
+                logits_list.extend(torch.nn.functional.softmax(logits, dim=-1).detach().cpu().numpy())
+                label_ids = logits.argmax(axis=1)
+                g_truths.extend(batch[3].detach().cpu().numpy())
+                preds.extend(label_ids.detach().cpu().numpy())
+                # confusion_matrix[batch[3].item(), label_ids.item()] += 1
+                list_of_sentence_ids.extend(batch[5].detach().cpu().numpy())
+                correct += (label_ids == batch[3]).sum()
+                num_samples += label_ids.size(0)
+                preds_list = label_ids.tolist()
+                truths_list = batch[3].tolist()
+                for i in range (len(preds_list)):
+                    confusion_matrix[truths_list[i], preds_list[i]] += 1
 
 
     if model_class_name == "ArabicDialectBERT":
