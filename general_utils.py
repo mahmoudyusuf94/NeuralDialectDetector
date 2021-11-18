@@ -76,7 +76,7 @@ def evaluate_predictions(model, evaluation_loader, model_class_name, device="cpu
     logits_list = []
     y_true = []
     y_pred = []
-    confusion_matrix = np.zeros((21, 21))
+    confusion_matrix = np.zeros((21, 21), dtype=np.int16)
     for batch in no_batches:
         batch = [x.to(device) for x in batch]
         label_ids_in = batch[3] if not isTest else None
@@ -90,11 +90,16 @@ def evaluate_predictions(model, evaluation_loader, model_class_name, device="cpu
             label_ids = logits.argmax(axis=1)
             g_truths.extend(batch[3].detach().cpu().numpy())
             preds.extend(label_ids.detach().cpu().numpy())
-            confusion_matrix[batch[3].item(), label_ids.item()] += 1
+            # confusion_matrix[batch[3].item(), label_ids.item()] += 1
             list_of_sentence_ids.extend(batch[5].detach().cpu().numpy())
             correct += (label_ids == batch[3]).sum()
             num_samples += label_ids.size(0)
-    
+            preds_list = label_ids.tolist()
+            truths_list = batch[3].tolist()
+            for i in range (len(preds_list)):
+                confusion_matrix[truths_list[i], preds_list[i]] += 1
+
+
     if model_class_name == "ArabicDialectBERT":
         accuracy = correct / float(num_samples)
         accuracy = accuracy.item()

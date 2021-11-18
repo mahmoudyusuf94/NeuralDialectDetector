@@ -1,6 +1,6 @@
 adam_epsilon: 1.0e-08
 adapter_type: plain_adapter
-batch_size: 2
+batch_size: 32
 bottleneck_dim: 384
 checkpoint_on_improvement: true
 checkpointing_freq: 1
