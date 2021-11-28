@@ -1,6 +1,5 @@
 Lebanon,Levantine
 Jordan,Levantine
-Somalia,Other
 Kuwait,Arabian_Peninsula
 Oman,Arabian_Peninsula
 Palestine,Levantine
@@ -16,6 +15,4 @@ Egypt,Egypto_Sudanic
 Algeria,Maghrebi
 Syria,Levantine
 Qatar,Arabian_Peninsula
-Djibouti,Other
-Mauritania,Other
 Libya,Maghrebi

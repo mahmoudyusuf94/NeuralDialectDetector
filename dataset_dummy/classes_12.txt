@@ -1,6 +1,5 @@
 Lebanon
 Jordan
-Somalia
 Kuwait
 Oman
 Palestine
@@ -16,6 +15,4 @@ Egypt
 Algeria
 Syria
 Qatar
-Djibouti
-Mauritania
 Libya
