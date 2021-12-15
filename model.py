@@ -10,6 +10,11 @@ from AdaptersComponents.BertLayerAdapter import BertLayer_w_Adapters
 from AdaptersComponents.BertLayerPlainAdapter import BertLayer_w_PlainAdapters
 from general_utils import random_mask_tokens
 from vatt import vatt
+from torch_gcn import GCN
+import torch.nn.functional as F
+import dgl
+import scipy.sparse as sp
+
 
 # from transformers.models.bert.modeling_bert import BertModel as TBertModel
 
@@ -40,6 +45,22 @@ class ArabicDialectBERT(BertPreTrainedModel):
         self.args = args
         self.num_labels = args["num_labels"]
         self.bert = BertModel(config=config)  # TO-DO: Add adapters function that changes encoder here # Load pretrained bert
+        
+        # nb_class=20
+        gcn_layers=2
+        n_hidden=200
+        dropout=0.5
+        self.feat_dim = list(self.bert.modules())[-2].out_features
+        
+        self.gcn = GCN(
+            in_feats=self.feat_dim,
+            n_hidden=n_hidden,
+            n_classes=self.num_labels, #n_classes=nb_class,
+            n_layers=gcn_layers-1,
+            activation=F.elu,
+            dropout=dropout
+        )
+
         self.masking_perc = args["masking_percentage"]
         self.mask_id = args["mask_id"]
         self.device_name = args["device"]
@@ -70,24 +91,37 @@ class ArabicDialectBERT(BertPreTrainedModel):
         self.loss_function = nn.CrossEntropyLoss()
         self.classif_head = ClassificationHead(config.hidden_size, self.num_labels, args["classif_dropout_rate"])
 
-    def forward(self, input_ids, attention_mask, token_type_ids, class_label_ids, input_ids_masked):
+    def forward(self, input_ids, attention_mask, token_type_ids, class_label_ids, input_ids_masked, g):
         if self.train:
             input_ids = random_mask_tokens(input_ids, attention_mask, self.masking_perc, self.mask_id, self.device_name)
-        outputs = self.bert(
-            input_ids,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            output_hidden_states=True,
-        )  # sequence_output, pooled_output, (hidden_states), (attentions)
-        # sequence_output = outputs[0]  # Not needed for now
-        pooled_output = outputs[1]  # [CLS]
+            cls_feats = self.bert(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, output_hidden_states=True)[0][:, 0]
+            g.ndata['cls_feats'] = cls_feats
+        else:
+            cls_feats = g.ndata['cls_feats']
         
-        if self.args['use_vert_att']:
-            layer_cls = [layer[:,0,:] for layer in outputs[2]]
-            pooled_output = self.attend_vertical(Xs=layer_cls, Q=pooled_output)
-            # pooled_output = self.bert.pooler(new_feats)
+        cls_logit = self.classif_head(cls_feats)
+        # cls_pred = torch.nn.Softmax(dim=1)(cls_logit)
+        gcn_logits = self.gcn(g.ndata['cls_feats'], g, g.edata['edge_weight'])
+        # gcn_pred = torch.nn.Softmax(dim=1)(gcn_logit)
+        # pred = (gcn_pred+1e-10) * self.m + cls_pred * (1 - self.m)
+        # pred = torch.log(pred)
+        # return pred
 
-        logits = self.classif_head(pooled_output)
+        # outputs = self.bert(
+        #     input_ids,
+        #     attention_mask=attention_mask,
+        #     token_type_ids=token_type_ids,
+        #     output_hidden_states=True,
+        # )  # sequence_output, pooled_output, (hidden_states), (attentions)
+        # sequence_output = outputs[0]  # Not needed for now
+        # pooled_output = outputs[1]  # [CLS]
+        
+        # if self.args['use_vert_att']:
+        #     layer_cls = [layer[:,0,:] for layer in outputs[2]]
+        #     pooled_output = self.attend_vertical(Xs=layer_cls, Q=pooled_output)
+        #     # pooled_output = self.bert.pooler(new_feats)
+
+        logits = self.classif_head(gcn_logits)
 
         total_loss = 0
         # 1. Intent Softmax
@@ -99,7 +133,7 @@ class ArabicDialectBERT(BertPreTrainedModel):
                 temp_loss = self.loss_function(logits.view(-1, self.num_labels), class_label_ids.view(-1))
             total_loss += temp_loss  
 
-        outputs = ((logits, ),) + outputs[2:]  # add hidden states and attention if they are here
+        outputs = ((logits, ),) + cls_feats[2:]  # add hidden states and attention if they are here
 
         outputs = (total_loss,) + outputs
 

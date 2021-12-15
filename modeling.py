@@ -11,6 +11,9 @@ import os
 import random 
 import model as model_classes
 from torch.optim.lr_scheduler import CyclicLR, LambdaLR
+import torch.nn.functional as F
+import dgl
+import scipy.sparse as sp
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +146,16 @@ class Trainer():
                 model.train()
 
                 batch = [x.to(self.configs["device"]) for x in batch]
-                outputs = model(input_ids=batch[0], attention_mask=batch[1], token_type_ids=batch[2], class_label_ids=batch[3], input_ids_masked=batch[4])
+
+                spmat = sp.rand(32, 32, density=0.05)
+                g = dgl.from_scipy(spmat.astype('float32'), eweight_name='edge_weight')
+                g.ndata['input_ids'], g.ndata['attention_mask'] = batch[0], batch[1]
+                # g.ndata['label'], g.ndata['train'], g.ndata['val'], g.ndata['test'] = \
+                #     torch.LongTensor(y), torch.FloatTensor(train_mask), torch.FloatTensor(val_mask), torch.FloatTensor(test_mask)
+                g.ndata['label_train'] = torch.LongTensor(batch[3])
+                # g.ndata['cls_feats'] = torch.zeros((nb_node, model.feat_dim))
+
+                outputs = model(input_ids=batch[0], attention_mask=batch[1], token_type_ids=batch[2], class_label_ids=batch[3], input_ids_masked=batch[4], g=g)
                 loss = outputs[0]
 
                 loss.backward()
